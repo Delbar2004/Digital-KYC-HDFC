@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart KYC Demo</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        h2 { color: #333; margin-bottom: 20px; }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 15px 30px; border: none; border-radius: 50px;
+            font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px;
+            transition: transform 0.2s;
+        }
+        .btn:active { transform: scale(0.95); }
+        #status { margin-top: 20px; font-weight: bold; padding: 10px; border-radius: 8px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Scan ID Document</h2>
+        <p style="color:#666; margin-bottom:20px;">Ensure good lighting and no blur.</p>
+
+        <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
+
+        <button class="btn" onclick="document.getElementById('fileInput').click()">📷 Open Camera</button>
+
+        <div id="status"></div>
+
+        <!-- New message + extracted text box -->
+        <div id="message"></div>
+        <div id="extractedData" 
+             style="margin-top:10px; color:#555; font-size:0.9rem; padding:10px; background:#f9f9f9; 
+                    border-radius:5px; display:none;">
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('fileInput');
+        const msg = document.getElementById('message');
+        const dataBox = document.getElementById('extractedData');
+        const status = document.getElementById('status');
+
+        input.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+
+            // Reset UI
+            msg.innerText = "Analyzing & Reading Text...";
+            msg.style.color = "blue";
+            dataBox.style.display = 'none';
+            status.innerHTML = "Processing...";
+            status.className = "";
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/upload-id', { method: 'POST', body: formData });
+                const result = await res.json();
+                
+                // Message box
+                msg.innerText = result.message;
+                msg.style.color = res.ok ? "green" : "red";
+
+                // Status box
+                if (res.ok) {
+                    status.innerHTML = "✅ " + result.message;
+                    status.className = "success";
+                } else {
+                    status.innerHTML = "❌ " + result.message;
+                    status.className = "error";
+                }
+
+                // Extracted text output
+                if (res.ok && result.extracted_text) {
+                    dataBox.style.display = 'block';
+                    dataBox.innerText = "Found Text: " + result.extracted_text;
+                }
+
+            } catch(err) {
+                msg.innerText = "Error: Check Server";
+                msg.style.color = "red";
+
+                status.innerHTML = "Connection Error";
+                status.className = "error";
+            }
+        });
+    </script>
+</body>
+</html>
